@@ -170,6 +170,53 @@ jobs:
               expect(nums.some(n => Math.abs(n - (-1)) < 1e-3)).toBe(true);
               expect(console.log).not.toHaveBeenCalled();
             });
+            // --- EXTRA QUADRATIC TESTS (real distinct roots + complex roots) ---
+
+            // Case 1: two real, distinct roots (Δ > 0)
+            // Example: a=1, b=-3, c=2  → roots 1 and 2 (order may vary)
+            test('quadratic(a,b,c): two real distinct roots (Δ>0) show both roots', async () => {
+              setVal(document, 'qa', '1');
+              setVal(document, 'qb', '-3');
+              setVal(document, 'qc', '2');
+              document.getElementById('btnQuadratic').click(); 
+              await wait();
+
+              const t = text(document, 'outQuadratic');
+              const nums = (t.match(/-?\d+(\.\d+)?/g) || []).map(Number);
+
+              // We just need to see 1 and 2 somewhere in the output (any order).
+              const has1 = nums.some(n => Math.abs(n - 1) < 1e-3);
+              const has2 = nums.some(n => Math.abs(n - 2) < 1e-3);
+
+              expect(has1 && has2).toBe(true);
+              expect(console.log).not.toHaveBeenCalled();
+            });
+
+            // Case 2: complex conjugate roots (Δ < 0)
+            // Example: a=1, b=1, c=1 → -0.5 ± 0.866025... i
+            // We accept any clear complex formatting, e.g. "-0.5 ± 0.866i", "-0.5 + 0.866i, -0.5 - 0.866i", etc.
+            test('quadratic(a,b,c): complex roots (Δ<0) show real and imaginary parts (with "i")', async () => {
+              setVal(document, 'qa', '1');
+              setVal(document, 'qb', '1');
+              setVal(document, 'qc', '1');
+              document.getElementById('btnQuadratic').click(); 
+              await wait();
+
+              const t = text(document, 'outQuadratic');
+
+              // Must include an "i" to indicate complex form
+              expect(/i\b/i.test(t)).toBe(true);
+
+              // Extract numbers present; expect approximately -0.5 and 0.866...
+              const nums = (t.match(/-?\d+(\.\d+)?/g) || []).map(Number);
+              const hasReal = nums.some(n => Math.abs(n - (-0.5)) < 1e-2);
+              const hasImag = nums.some(n => Math.abs(n - 0.866) < 2e-2); // tolerant
+
+              expect(hasReal).toBe(true);
+              expect(hasImag).toBe(true);
+              expect(console.log).not.toHaveBeenCalled();
+            });
+
           });
           EOF
 
