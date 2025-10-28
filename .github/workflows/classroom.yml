@@ -1,12 +1,19 @@
-name: "Classroom Autograder – Unit 8.6: Functions (Buttons + textContent)"
+name: Classroom Autograder – Unit 8.6 - Functions (Buttons + textContent)
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
 
 jobs:
   autograde:
     runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -182,28 +189,155 @@ jobs:
           });
           EOF
 
-      - name: Run tests and summarize
-        id: jest
-        continue-on-error: true
+      # ---------- GRADING STEPS (each awards points, total 100) ----------
+
+      - name: 'required elements exist'
+        id: t_required
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: 'required elements exist'
+          setup-command: echo "ready"
+          command: 'npx jest --runInBand -t "required elements exist (5 buttons, inputs, outputs)"'
+          timeout: 60
+          max-score: 10
+
+      - name: 'myFunc increments & writes'
+        id: t_myfunc
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: 'myFunc increments & writes'
+          setup-command: echo "ready"
+          command: 'npx jest --runInBand -t "myFunc: counter increments and writes via textContent (no console.log)"'
+          timeout: 60
+          max-score: 20
+
+      - name: 'getRandomNum in range'
+        id: t_random
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: 'getRandomNum in range'
+          setup-command: echo "ready"
+          command: 'npx jest --runInBand -t "getRandomNum(max): result 1..max or 0 when invalid (written to #outRandom)"'
+          timeout: 60
+          max-score: 20
+
+      - name: 'myAdder shows sum'
+        id: t_adder
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: 'myAdder shows sum'
+          setup-command: echo "ready"
+          command: 'npx jest --runInBand -t "myAdder(x,y): sum shown in #outAdder (no console.log)"'
+          timeout: 60
+          max-score: 20
+
+      - name: 'distance shows numeric value'
+        id: t_distance
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: 'distance shows numeric value'
+          setup-command: echo "ready"
+          command: 'npx jest --runInBand -t "distance(x1,y1,x2,y2): numeric distance shown in #outDistance (≈4.2426; no console.log)"'
+          timeout: 60
+          max-score: 15
+
+      - name: 'quadratic shows roots'
+        id: t_quadratic
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: 'quadratic shows roots'
+          setup-command: echo "ready"
+          command: 'npx jest --runInBand -t "quadratic(a,b,c): roots shown in #outQuadratic (handle double root)"'
+          timeout: 60
+          max-score: 15
+
+
+      # Ground truth: run full suite once to collect titles for the pretty list
+      - name: Create jest-summary.json
         run: |
-          npx jest --runInBand --json --outputFile=jest-results.json
+          npx jest --runInBand --json --outputFile=jest-summary.json || true
+
+      - name: Summarize results with hints (from grader outputs)
+        run: |
           node - <<'NODE'
           const fs = require('fs');
-          let r = { numTotalTests:0, numPassedTests:0, numFailedTests:0, testResults:[] };
-          try { r = JSON.parse(fs.readFileSync('jest-results.json','utf8')); } catch {}
-          const total=r.numTotalTests||0, passed=r.numPassedTests||0, failed=r.numFailedTests||0;
-          const rows = (r.testResults||[]).flatMap(t => (t.assertionResults||[]).map(a => `- ${a.status==='passed'?'✅':'❌'} ${a.title}`));
-          const out = [
-            '# Unit 8.6 Autograder Summary',
-            `**Passed:** ${passed}/${total} · **Failed:** ${failed}`,
-            '',
-            '## Checks',
-            ...rows
-          ].join('\n');
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, out);
+
+          // Helper: decode autograder result from env (JSON or base64 JSON)
+          function parseResult(envName) {
+            const raw = process.env[envName] || '';
+            const tryParse = s => { try { return JSON.parse(s); } catch { return null; } };
+            return tryParse(raw) || tryParse(Buffer.from(raw, 'base64').toString('utf8')) || {};
+          }
+
+          const items = [
+            ['T_REQUIRED_RESULTS', 'required elements exist',
+             'Ensure all required IDs exist: btnMyFunc/Random/Adder/Distance/Quadratic, outMyFunc/Random/Adder/Distance/Quadratic, and inputs maxRand, addX, addY, x1, y1, x2, y2, qa, qb, qc.'],
+
+            ['T_MYFUNC_RESULTS', 'myFunc increments & writes',
+             'Keep a counter in JS and write to #outMyFunc with textContent (do not use console.log).'],
+
+            ['T_RANDOM_RESULTS', 'getRandomNum in range',
+             'If max < 1, write 0; otherwise generate integers in [1..max] and write to #outRandom via textContent.'],
+
+            ['T_ADDER_RESULTS', 'myAdder shows sum',
+             'Parse numbers from #addX and #addY, add them, and write the sum to #outAdder using textContent.'],
+
+            ['T_DISTANCE_RESULTS', 'distance shows numeric value',
+             'Compute sqrt((x2-x1)^2 + (y2-y1)^2) and write a number to #outDistance.'],
+
+            ['T_QUADRATIC_RESULTS', 'quadratic shows roots',
+             'Handle double root when b^2-4ac == 0; write roots to #outQuadratic.'],
+          ];
+
+          const statuses = items.map(([env, label, hint]) => {
+            const r = parseResult(env);
+            const passed = (r.status || r.passed || '').toString().toLowerCase() === 'pass';
+            return { label, hint, passed };
+          });
+
+          const passedCount = statuses.filter(s => s.passed).length;
+          const total = statuses.length;
+
+          const lines = [];
+          lines.push('# Unit 8.6 Autograder Summary', '');
+          lines.push(`**Passed:** ${passedCount}/${total}`, '');
+
+          for (const s of statuses) {
+            lines.push(`${s.passed ? '✅' : '❌'} ${s.label}` + (s.passed ? '' : ` - Hint: ${s.hint}`));
+          }
+          lines.push('');
+
+          // Append raw Jest check titles for transparency
+          try {
+            const jr = JSON.parse(fs.readFileSync('jest-summary.json','utf8'));
+            const assertions = (jr.testResults||[]).flatMap(t => t.assertionResults || []);
+            if (assertions.length) {
+              lines.push('## Checks');
+              for (const a of assertions) {
+                lines.push(`${a.status === 'passed' ? '✅' : '❌'} ${a.title}`);
+              }
+            }
+          } catch {}
+
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n'));
           NODE
+        env:
+          T_REQUIRED_RESULTS:  ${{ steps.t_required.outputs.result }}
+          T_MYFUNC_RESULTS:    ${{ steps.t_myfunc.outputs.result }}
+          T_RANDOM_RESULTS:    ${{ steps.t_random.outputs.result }}
+          T_ADDER_RESULTS:     ${{ steps.t_adder.outputs.result }}
+          T_DISTANCE_RESULTS:  ${{ steps.t_distance.outputs.result }}
+          T_QUADRATIC_RESULTS: ${{ steps.t_quadratic.outputs.result }}
 
-      - name: Fail job if any test failed
-        if: steps.jest.outcome == 'failure'
-        run: exit 1
-
+      # ---------- Report scores back to GitHub Classroom ----------
+      - name: Autograding Reporter
+        uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          T_REQUIRED_RESULTS:  ${{ steps.t_required.outputs.result }}
+          T_MYFUNC_RESULTS:    ${{ steps.t_myfunc.outputs.result }}
+          T_RANDOM_RESULTS:    ${{ steps.t_random.outputs.result }}
+          T_ADDER_RESULTS:     ${{ steps.t_adder.outputs.result }}
+          T_DISTANCE_RESULTS:  ${{ steps.t_distance.outputs.result }}
+          T_QUADRATIC_RESULTS: ${{ steps.t_quadratic.outputs.result }}
+        with:
+          runners: t_required,t_myfunc,t_random,t_adder,t_distance,t_quadratic
