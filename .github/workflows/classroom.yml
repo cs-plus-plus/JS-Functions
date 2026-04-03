@@ -107,7 +107,7 @@ jobs:
             afterAll(function() { if (dom) dom.window.close(); });
 
             test('required elements exist', function() {
-              var ids = ['btnGreet', 'outGreet', 'btnMyFunc', 'outMyFunc',
+              var ids = ['greetInput', 'btnGreet', 'outGreet', 'btnMyFunc', 'outMyFunc',
                 'maxRand', 'btnRandom', 'outRandom',
                 'addX', 'addY', 'btnAdder', 'outAdder',
                 'x1', 'y1', 'x2', 'y2', 'btnDistance', 'outDistance',
@@ -148,6 +148,12 @@ jobs:
             test('getRandomNum valid and invalid', async function() {
               // Test invalid
               setVal(document, 'maxRand', 'abc');
+              click(document, 'btnRandom');
+              await wait();
+              expect(text(document, 'outRandom')).toBe('0');
+
+              // Test max=0
+              setVal(document, 'maxRand', '0');
               click(document, 'btnRandom');
               await wait();
               expect(text(document, 'outRandom')).toBe('0');
