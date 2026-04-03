@@ -1,7 +1,8 @@
-name: Unit 8.6 Autograding (Functions)
+name: autograde
 
 on:
   push:
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -16,13 +17,11 @@ jobs:
         with:
           node-version: 20
 
-      # Install Jest + jsdom
       - name: Install test deps
         run: |
           npm init -y >/dev/null 2>&1 || true
           npm install --save-dev jest@29 jsdom@21 jest-environment-jsdom@29
 
-      # Jest setup (TextEncoder/Decoder for Node 20)
       - name: Write jest setup
         run: |
           cat > jest.setup.cjs <<'EOF'
@@ -31,311 +30,294 @@ jobs:
           if (typeof global.TextDecoder === 'undefined') global.TextDecoder = TextDecoder;
           EOF
 
-      # Jest config
       - name: Write jest config
         run: |
           cat > jest.config.cjs <<'EOF'
           module.exports = {
             testEnvironment: 'jsdom',
             setupFiles: ['<rootDir>/jest.setup.cjs'],
-            testMatch: ['**/__tests__/**/*.test.cjs']
+            testMatch: ['**/__tests__/**/*.test.cjs'],
+            testTimeout: 15000
           };
           EOF
 
-      # Write test file
       - name: Write tests
         run: |
           mkdir -p __tests__
-          cat > __tests__/functions-8_6.test.cjs <<'EOF'
+          cat > __tests__/functions.test.cjs <<'TESTEOF'
           const fs = require('fs');
           const path = require('path');
           const { JSDOM, VirtualConsole } = require('jsdom');
 
-          const wait = (ms=50) => new Promise(r => setTimeout(r, ms));
-          const find = arr => arr.find(p => fs.existsSync(p)) || null;
-          const findIndex = () => find(['index.html','public/index.html','src/index.html','docs/index.html']);
+          const wait = function(ms) { return new Promise(function(r) { setTimeout(r, ms || 50); }); };
+          const findFile = function(arr) { return arr.find(function(p) { return fs.existsSync(p); }) || null; };
+          const findIndex = function() {
+            return findFile(['index.html', 'public/index.html', 'src/index.html', 'docs/index.html']);
+          };
 
           function byId(doc, id) { return doc.getElementById(id); }
           function text(doc, id) {
-            const el = byId(doc, id);
-            return (el?.textContent || el?.innerText || '').trim();
+            var el = byId(doc, id);
+            return (el && (el.textContent || el.innerText) || '').trim();
           }
           function setVal(doc, id, v) {
-            const el = byId(doc, id); if (!el) return false; el.value = String(v); return true;
+            var el = byId(doc, id);
+            if (!el) return false;
+            el.value = String(v);
+            return true;
           }
-          function click(doc, id) { byId(doc, id)?.click(); }
+          function click(doc, id) {
+            var el = byId(doc, id);
+            if (el) el.click();
+          }
+
+          var source = '';
+          try { source = fs.readFileSync(path.resolve('script.js'), 'utf8'); } catch(e) {}
 
           async function loadDOM() {
-            const idx = findIndex();
-            if (!idx) throw new Error('index.html not found (root/public/src/docs).');
-
-            const vconsole = new VirtualConsole();
-            vconsole.on('error', () => {});
-
-            const baseDir = path.dirname(path.resolve(idx));
-            const baseUrl = 'file://' + baseDir.replace(/\\+/g, '/') + '/';
-
-            const dom = await JSDOM.fromFile(idx, {
+            var idx = findIndex();
+            if (!idx) throw new Error('index.html not found');
+            var vconsole = new VirtualConsole();
+            vconsole.on('error', function() {});
+            var baseDir = path.dirname(path.resolve(idx));
+            var baseUrl = 'file://' + baseDir.replace(/\\+/g, '/') + '/';
+            var dom = await JSDOM.fromFile(idx, {
               url: baseUrl,
               runScripts: 'dangerously',
               resources: 'usable',
               pretendToBeVisual: true,
               virtualConsole: vconsole
             });
-
-            dom.window.prompt = () => { throw new Error('Use inputs, not prompt().'); };
-            dom.window.alert  = () => { throw new Error('Use textContent, not alert().'); };
-
-            await new Promise(res => dom.window.addEventListener('load', res, { once: true }));
+            dom.window.alert = function() {};
+            dom.window.prompt = function() { return ''; };
+            await new Promise(function(res) {
+              dom.window.addEventListener('load', res, { once: true });
+            });
             await wait();
             return dom;
           }
 
-          describe('Unit 8.6 – Functions', () => {
-            let dom, window, document;
-
-            beforeAll(async () => {
+          describe('Unit 8.6 – Functions', function() {
+            var dom, window, document;
+            beforeAll(async function() {
               dom = await loadDOM();
               window = dom.window;
               document = window.document;
             });
+            afterAll(function() { if (dom) dom.window.close(); });
 
-            test('required elements exist', () => {
-              const buttons = ['btnMyFunc','btnRandom','btnAdder','btnDistance','btnQuadratic'];
-              const inputs  = ['maxRand','addX','addY','x1','y1','x2','y2','qa','qb','qc'];
-              const outputs = ['outMyFunc','outRandom','outAdder','outDistance','outQuadratic'];
-
-              [...buttons, ...inputs, ...outputs].forEach(id =>
-                expect(document.getElementById(id)).not.toBeNull()
-              );
+            test('required elements exist', function() {
+              var ids = ['btnGreet', 'outGreet', 'btnMyFunc', 'outMyFunc',
+                'maxRand', 'btnRandom', 'outRandom',
+                'addX', 'addY', 'btnAdder', 'outAdder',
+                'x1', 'y1', 'x2', 'y2', 'btnDistance', 'outDistance',
+                'tipBill', 'tipPercent', 'btnTip', 'outTip'];
+              for (var i = 0; i < ids.length; i++) {
+                expect(byId(document, ids[i])).not.toBeNull();
+              }
             });
 
-            test('myFunc increments a persistent counter', async () => {
-              click(document, 'btnMyFunc'); await wait();
-              const first = text(document, 'outMyFunc');
-              click(document, 'btnMyFunc'); await wait();
-              const second = text(document, 'outMyFunc');
-              click(document, 'btnMyFunc'); await wait();
-              const third = text(document, 'outMyFunc');
+            test('uses return keyword', function() {
+              expect(source).toMatch(/\breturn\b/);
+            });
 
-              const n1 = parseFloat(first);
-              const n2 = parseFloat(second);
-              const n3 = parseFloat(third);
+            test('greet function', async function() {
+              setVal(document, 'greetInput', 'Alice');
+              click(document, 'btnGreet');
+              await wait();
+              expect(text(document, 'outGreet')).toBe('Hello, Alice!');
+            });
+
+            test('myFunc counter', async function() {
+              click(document, 'btnMyFunc');
+              await wait();
+              var first = text(document, 'outMyFunc');
+              click(document, 'btnMyFunc');
+              await wait();
+              var second = text(document, 'outMyFunc');
+              click(document, 'btnMyFunc');
+              await wait();
+              var third = text(document, 'outMyFunc');
+              var n1 = parseInt(first);
+              var n2 = parseInt(second);
+              var n3 = parseInt(third);
               expect(n2).toBe(n1 + 1);
               expect(n3).toBe(n2 + 1);
             });
 
-            test('getRandomNum returns value in range or 0', async () => {
-              setVal(document, 'maxRand', '5');
-              click(document, 'btnRandom'); await wait();
-              const val = parseFloat(text(document, 'outRandom'));
-              expect(val).toBeGreaterThanOrEqual(0);
-              expect(val).toBeLessThanOrEqual(5);
+            test('getRandomNum valid and invalid', async function() {
+              // Test invalid
+              setVal(document, 'maxRand', 'abc');
+              click(document, 'btnRandom');
+              await wait();
+              expect(text(document, 'outRandom')).toBe('0');
 
-              // invalid input should return 0
-              setVal(document, 'maxRand', '-3');
-              click(document, 'btnRandom'); await wait();
-              const invalid = parseFloat(text(document, 'outRandom'));
-              expect(invalid).toBe(0);
+              // Test valid (mock Math.random)
+              window.Math.random = function() { return 0.5; };
+              setVal(document, 'maxRand', '10');
+              click(document, 'btnRandom');
+              await wait();
+              var val = parseInt(text(document, 'outRandom'));
+              expect(val).toBeGreaterThanOrEqual(1);
+              expect(val).toBeLessThanOrEqual(10);
             });
 
-            test('myAdder returns correct sum', async () => {
-              setVal(document, 'addX', '7');
-              setVal(document, 'addY', '13');
-              click(document, 'btnAdder'); await wait();
-              const sum = parseFloat(text(document, 'outAdder'));
-              expect(sum).toBe(20);
+            test('myAdder adds numbers', async function() {
+              setVal(document, 'addX', '3');
+              setVal(document, 'addY', '5');
+              click(document, 'btnAdder');
+              await wait();
+              expect(text(document, 'outAdder')).toBe('8');
             });
 
-            test('distance calculates correctly', async () => {
+            test('distance calculation', async function() {
               setVal(document, 'x1', '0');
               setVal(document, 'y1', '0');
               setVal(document, 'x2', '3');
               setVal(document, 'y2', '4');
-              click(document, 'btnDistance'); await wait();
-              const d = parseFloat(text(document, 'outDistance'));
-              expect(d).toBeCloseTo(5, 1);
+              click(document, 'btnDistance');
+              await wait();
+              expect(text(document, 'outDistance')).toBe('5.00');
             });
 
-            test('quadratic solves real roots', async () => {
-              // x^2 - 5x + 6 = 0 => roots 2 and 3
-              setVal(document, 'qa', '1');
-              setVal(document, 'qb', '-5');
-              setVal(document, 'qc', '6');
-              click(document, 'btnQuadratic'); await wait();
-              const result = text(document, 'outQuadratic');
-              expect(result).toMatch(/2/);
-              expect(result).toMatch(/3/);
-            });
-
-            test('quadratic handles negative discriminant', async () => {
-              // x^2 + 1 = 0 => complex roots
-              setVal(document, 'qa', '1');
-              setVal(document, 'qb', '0');
-              setVal(document, 'qc', '1');
-              click(document, 'btnQuadratic'); await wait();
-              const result = text(document, 'outQuadratic');
-              // Should contain 'i' for imaginary
-              expect(result.toLowerCase()).toMatch(/i/);
+            test('tipCalc calculation', async function() {
+              setVal(document, 'tipBill', '50');
+              setVal(document, 'tipPercent', '20');
+              click(document, 'btnTip');
+              await wait();
+              expect(text(document, 'outTip')).toBe('60.00');
             });
           });
-          EOF
+          TESTEOF
 
-      # === Individual graded runs ===
-      - id: t_required
+      # === Graded steps (sum to 100) ===
+      - id: t_elements
         name: required elements exist
         uses: classroom-resources/autograding-command-grader@v1
         with:
           test-name: required elements exist
           setup-command: echo "ready"
-          command: npx jest --runInBand --testNamePattern ".*required elements exist$"
+          command: npx jest --runInBand --testNamePattern "required elements exist$"
+          timeout: 60
+          max-score: 5
+
+      - id: t_return
+        name: uses return keyword
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: uses return keyword
+          setup-command: echo "ready"
+          command: npx jest --runInBand --testNamePattern "uses return keyword$"
           timeout: 60
           max-score: 10
 
-      - id: t_counter
-        name: myFunc persistent counter
+      - id: t_greet
+        name: greet function
         uses: classroom-resources/autograding-command-grader@v1
         with:
-          test-name: myFunc persistent counter
+          test-name: greet function
           setup-command: echo "ready"
-          command: npx jest --runInBand --testNamePattern ".*myFunc increments a persistent counter$"
+          command: npx jest --runInBand --testNamePattern "greet function$"
+          timeout: 60
+          max-score: 15
+
+      - id: t_counter
+        name: myFunc counter
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: myFunc counter
+          setup-command: echo "ready"
+          command: npx jest --runInBand --testNamePattern "myFunc counter$"
           timeout: 60
           max-score: 15
 
       - id: t_random
-        name: getRandomNum range or 0
+        name: getRandomNum valid and invalid
         uses: classroom-resources/autograding-command-grader@v1
         with:
-          test-name: getRandomNum range or 0
+          test-name: getRandomNum valid and invalid
           setup-command: echo "ready"
-          command: npx jest --runInBand --testNamePattern ".*getRandomNum returns value in range or 0$"
-          timeout: 60
-          max-score: 15
-
-      - id: t_adder
-        name: myAdder correct sum
-        uses: classroom-resources/autograding-command-grader@v1
-        with:
-          test-name: myAdder correct sum
-          setup-command: echo "ready"
-          command: npx jest --runInBand --testNamePattern ".*myAdder returns correct sum$"
-          timeout: 60
-          max-score: 15
-
-      - id: t_distance
-        name: distance calculates correctly
-        uses: classroom-resources/autograding-command-grader@v1
-        with:
-          test-name: distance calculates correctly
-          setup-command: echo "ready"
-          command: npx jest --runInBand --testNamePattern ".*distance calculates correctly$"
-          timeout: 60
-          max-score: 20
-
-      - id: t_quadratic_real
-        name: quadratic solves real roots
-        uses: classroom-resources/autograding-command-grader@v1
-        with:
-          test-name: quadratic solves real roots
-          setup-command: echo "ready"
-          command: npx jest --runInBand --testNamePattern ".*quadratic solves real roots$"
-          timeout: 60
-          max-score: 15
-
-      - id: t_quadratic_complex
-        name: quadratic handles complex roots
-        uses: classroom-resources/autograding-command-grader@v1
-        with:
-          test-name: quadratic handles complex roots
-          setup-command: echo "ready"
-          command: npx jest --runInBand --testNamePattern ".*quadratic handles negative discriminant$"
+          command: npx jest --runInBand --testNamePattern "getRandomNum valid and invalid$"
           timeout: 60
           max-score: 10
 
-      # === Prepare reporter env ===
-      - name: Prepare reporter env
-        id: prepEnv
-        shell: bash
-        run: |
-          echo "T_REQUIRED_RESULTS=${{ steps.t_required.outputs.result }}"           >> "$GITHUB_ENV"
-          echo "T_COUNTER_RESULTS=${{ steps.t_counter.outputs.result }}"             >> "$GITHUB_ENV"
-          echo "T_RANDOM_RESULTS=${{ steps.t_random.outputs.result }}"               >> "$GITHUB_ENV"
-          echo "T_ADDER_RESULTS=${{ steps.t_adder.outputs.result }}"                 >> "$GITHUB_ENV"
-          echo "T_DISTANCE_RESULTS=${{ steps.t_distance.outputs.result }}"           >> "$GITHUB_ENV"
-          echo "T_QUADRATIC_REAL_RESULTS=${{ steps.t_quadratic_real.outputs.result }}" >> "$GITHUB_ENV"
-          echo "T_QUADRATIC_COMPLEX_RESULTS=${{ steps.t_quadratic_complex.outputs.result }}" >> "$GITHUB_ENV"
+      - id: t_adder
+        name: myAdder adds numbers
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: myAdder adds numbers
+          setup-command: echo "ready"
+          command: npx jest --runInBand --testNamePattern "myAdder adds numbers$"
+          timeout: 60
+          max-score: 10
 
-      # === Combined summary ===
-      - name: Build & publish combined summary
+      - id: t_distance
+        name: distance calculation
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: distance calculation
+          setup-command: echo "ready"
+          command: npx jest --runInBand --testNamePattern "distance calculation$"
+          timeout: 60
+          max-score: 20
+
+      - id: t_tip
+        name: tipCalc calculation
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: tipCalc calculation
+          setup-command: echo "ready"
+          command: npx jest --runInBand --testNamePattern "tipCalc calculation$"
+          timeout: 60
+          max-score: 15
+
+      # Summary
+      - name: Build summary
         shell: bash
         run: |
+          npx jest --runInBand --json --outputFile=jest-summary.json || true
           node - <<'NODE'
-          const fs = require('fs');
-
+          const fs = require("fs");
+          let jr = {};
+          try { jr = JSON.parse(fs.readFileSync("jest-summary.json","utf8")); } catch {}
+          const assertions = (jr.testResults||[]).flatMap(t => t.assertionResults || []);
           const tests = [
-            { key: 'REQUIRED',          label: 'required elements exist',                weight: 10 },
-            { key: 'COUNTER',           label: 'myFunc persistent counter',              weight: 15 },
-            { key: 'RANDOM',            label: 'getRandomNum range or 0',                weight: 15 },
-            { key: 'ADDER',             label: 'myAdder correct sum',                    weight: 15 },
-            { key: 'DISTANCE',          label: 'distance calculates correctly',          weight: 20 },
-            { key: 'QUADRATIC_REAL',    label: 'quadratic solves real roots',            weight: 15 },
-            { key: 'QUADRATIC_COMPLEX', label: 'quadratic handles complex roots',        weight: 10 },
+            { name: "required elements exist", pts: 5 },
+            { name: "uses return keyword", pts: 10 },
+            { name: "greet function", pts: 15 },
+            { name: "myFunc counter", pts: 15 },
+            { name: "getRandomNum valid and invalid", pts: 10 },
+            { name: "myAdder adds numbers", pts: 10 },
+            { name: "distance calculation", pts: 20 },
+            { name: "tipCalc calculation", pts: 15 },
           ];
-
-          let total = 0;
           let earned = 0;
           const lines = ["# Unit 8.6 Autograder Summary", ""];
-
           for (const t of tests) {
-            total += t.weight;
-            const envName = `T_${t.key}_RESULTS`;
-            const raw = process.env[envName] || "";
-            let passed = false;
-
-            try {
-              let decoded;
-              try {
-                decoded = Buffer.from(raw, 'base64').toString('utf8');
-              } catch {
-                decoded = raw;
-              }
-
-              const obj = JSON.parse(decoded);
-              const status = (obj.status || "").toString().toLowerCase();
-
-              if (status === 'pass' || status === 'passed') {
-                passed = true;
-              } else if (Array.isArray(obj.tests)) {
-                passed = obj.tests.some(
-                  (test) =>
-                    (test.status || "").toString().toLowerCase() === 'pass' ||
-                    (test.status || "").toString().toLowerCase() === 'passed'
-                );
-              }
-            } catch (e) {}
-
-            if (passed) {
-              earned += t.weight;
-              lines.push(`✅ ${t.label} (${t.weight} pts)`);
-            } else {
-              lines.push(`❌ ${t.label} (${t.weight} pts)`);
-            }
+            const a = assertions.find(x => x.title === t.name);
+            const passed = !!a && a.status === "passed";
+            if (passed) earned += t.pts;
+            lines.push((passed ? "✅" : "❌") + " " + t.name + " (" + t.pts + " pts)");
           }
-
-          lines.push("");
-          lines.push(`**Score: ${earned}/${total}**`);
-
-          const summaryPath = process.env.GITHUB_STEP_SUMMARY;
-          if (summaryPath) {
-            fs.appendFileSync(summaryPath, lines.join("\n") + "\n");
-          } else {
-            console.log(lines.join("\n"));
-          }
+          lines.push("", "**Score: " + earned + "/100**");
+          console.log(lines.join("\n"));
+          if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
           NODE
 
-      # === Report to Classroom ===
+      - name: Prepare reporter env
+        shell: bash
+        run: |
+          echo "T_ELEMENTS_RESULTS=${{ steps.t_elements.outputs.result }}"   >> "$GITHUB_ENV"
+          echo "T_RETURN_RESULTS=${{ steps.t_return.outputs.result }}"       >> "$GITHUB_ENV"
+          echo "T_GREET_RESULTS=${{ steps.t_greet.outputs.result }}"         >> "$GITHUB_ENV"
+          echo "T_COUNTER_RESULTS=${{ steps.t_counter.outputs.result }}"     >> "$GITHUB_ENV"
+          echo "T_RANDOM_RESULTS=${{ steps.t_random.outputs.result }}"       >> "$GITHUB_ENV"
+          echo "T_ADDER_RESULTS=${{ steps.t_adder.outputs.result }}"         >> "$GITHUB_ENV"
+          echo "T_DISTANCE_RESULTS=${{ steps.t_distance.outputs.result }}"   >> "$GITHUB_ENV"
+          echo "T_TIP_RESULTS=${{ steps.t_tip.outputs.result }}"             >> "$GITHUB_ENV"
+
       - name: Report grades
         uses: classroom-resources/autograding-grading-reporter@v1
         with:
-          runners: 't_required,t_counter,t_random,t_adder,t_distance,t_quadratic_real,t_quadratic_complex'
+          runners: 't_elements,t_return,t_greet,t_counter,t_random,t_adder,t_distance,t_tip'
           token: ${{ github.token }}

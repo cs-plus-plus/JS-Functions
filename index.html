@@ -6,9 +6,14 @@
 </head>
 <body>
   <h1>Unit 8.6 – Functions</h1>
-  <p>Each button calls a function and shows the result below using <code>textContent</code>.</p>
+  <p>Each button calls a function. The result appears below using <code>textContent</code>.</p>
 
-  <h3>myFunc()</h3>
+  <h3>Warm-Up: greet(name)</h3>
+  <input id="greetInput" type="text" placeholder="Enter a name" />
+  <button id="btnGreet" onclick="onGreetClick()">Greet</button>
+  <div id="outGreet"></div>
+
+  <h3>myFunc() — Persistent Counter</h3>
   <button id="btnMyFunc" onclick="onMyFuncClick()">Click Me</button>
   <div id="outMyFunc"></div>
 
@@ -32,12 +37,11 @@
   <button id="btnDistance" onclick="onDistanceClick()">Find Distance</button>
   <div id="outDistance"></div>
 
-  <h3>quadratic(a, b, c)</h3>
-  <label>a: <input id="qa" type="number" /></label>
-  <label>b: <input id="qb" type="number" /></label>
-  <label>c: <input id="qc" type="number" /></label>
-  <button id="btnQuadratic" onclick="onQuadraticClick()">Solve</button>
-  <div id="outQuadratic"></div>
+  <h3>tipCalc(bill, tipPercent)</h3>
+  <label>Bill: <input id="tipBill" type="number" /></label>
+  <label>Tip %: <input id="tipPercent" type="number" /></label>
+  <button id="btnTip" onclick="onTipClick()">Calculate Tip</button>
+  <div id="outTip"></div>
 
   <script src="script.js"></script>
 </body>
