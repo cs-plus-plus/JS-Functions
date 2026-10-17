@@ -199,7 +199,7 @@ jobs:
       # === Graded steps (sum to 100) ===
       - id: t_elements
         name: required elements exist
-        uses: classroom-resources/autograding-command-grader@v1
+        uses: cs-plus-plus/autograding-command-grader@v1
         with:
           test-name: required elements exist
           setup-command: echo "ready"
@@ -209,7 +209,7 @@ jobs:
 
       - id: t_return
         name: uses return keyword
-        uses: classroom-resources/autograding-command-grader@v1
+        uses: cs-plus-plus/autograding-command-grader@v1
         with:
           test-name: uses return keyword
           setup-command: echo "ready"
@@ -219,7 +219,7 @@ jobs:
 
       - id: t_greet
         name: greet function
-        uses: classroom-resources/autograding-command-grader@v1
+        uses: cs-plus-plus/autograding-command-grader@v1
         with:
           test-name: greet function
           setup-command: echo "ready"
@@ -229,7 +229,7 @@ jobs:
 
       - id: t_counter
         name: myFunc counter
-        uses: classroom-resources/autograding-command-grader@v1
+        uses: cs-plus-plus/autograding-command-grader@v1
         with:
           test-name: myFunc counter
           setup-command: echo "ready"
@@ -239,7 +239,7 @@ jobs:
 
       - id: t_random
         name: getRandomNum valid and invalid
-        uses: classroom-resources/autograding-command-grader@v1
+        uses: cs-plus-plus/autograding-command-grader@v1
         with:
           test-name: getRandomNum valid and invalid
           setup-command: echo "ready"
@@ -249,7 +249,7 @@ jobs:
 
       - id: t_adder
         name: myAdder adds numbers
-        uses: classroom-resources/autograding-command-grader@v1
+        uses: cs-plus-plus/autograding-command-grader@v1
         with:
           test-name: myAdder adds numbers
           setup-command: echo "ready"
@@ -259,7 +259,7 @@ jobs:
 
       - id: t_distance
         name: distance calculation
-        uses: classroom-resources/autograding-command-grader@v1
+        uses: cs-plus-plus/autograding-command-grader@v1
         with:
           test-name: distance calculation
           setup-command: echo "ready"
@@ -269,7 +269,7 @@ jobs:
 
       - id: t_tip
         name: tipCalc calculation
-        uses: classroom-resources/autograding-command-grader@v1
+        uses: cs-plus-plus/autograding-command-grader@v1
         with:
           test-name: tipCalc calculation
           setup-command: echo "ready"
@@ -323,7 +323,7 @@ jobs:
           echo "T_TIP_RESULTS=${{ steps.t_tip.outputs.result }}"             >> "$GITHUB_ENV"
 
       - name: Report grades
-        uses: classroom-resources/autograding-grading-reporter@v1
+        uses: cs-plus-plus/autograding-grading-reporter@v1
         with:
           runners: 't_elements,t_return,t_greet,t_counter,t_random,t_adder,t_distance,t_tip'
           token: ${{ github.token }}
