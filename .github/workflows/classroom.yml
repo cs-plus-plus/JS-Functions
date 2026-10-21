@@ -97,6 +97,16 @@ jobs:
             return dom;
           }
 
+          // script.js with its comment lines removed. The STEP comments name the
+          // very things these checks look for, so a check of the whole file would
+          // pass on untouched starter code.
+          function codeLines() {
+            return source.split('\n')
+              .map(function(line) { return line.trim(); })
+              .filter(function(line) { return !line.startsWith('//') && !line.startsWith('*'); })
+              .join('\n');
+          }
+
           describe('Unit 8.6 – Functions', function() {
             var dom, window, document;
             beforeAll(async function() {
@@ -118,7 +128,7 @@ jobs:
             });
 
             test('uses return keyword', function() {
-              expect(source).toMatch(/\breturn\b/);
+              expect(codeLines()).toMatch(/\breturn\b/);
             });
 
             test('greet function', async function() {
@@ -141,6 +151,8 @@ jobs:
               var n1 = parseInt(first);
               var n2 = parseInt(second);
               var n3 = parseInt(third);
+              // Jest's toBe treats NaN as equal to NaN, so an empty output would pass.
+              expect(n1).not.toBeNaN();
               expect(n2).toBe(n1 + 1);
               expect(n3).toBe(n2 + 1);
             });

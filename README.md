@@ -183,9 +183,9 @@ Write a function that calculates a restaurant tip:
 | # | Test | Points | What the autograder checks |
 |---|------|--------|---------------------------|
 | 1 | Required elements exist | 5 | All buttons, inputs, output divs present |
-| 2 | Uses return keyword | 10 | Source code contains `return` |
+| 2 | Uses return keyword | 10 | Your code (not a comment) contains `return` |
 | 3 | greet("Alice") → "Hello, Alice!" | 15 | Correct greeting in output div |
-| 4 | myFunc() counter increments | 15 | Counts 1, 2, 3 on successive clicks |
+| 4 | myFunc() counter increments | 15 | Shows a number that goes up by 1 on each click |
 | 5 | getRandomNum(10) returns 1–10 | 10 | Value in valid range, 0 for invalid |
 | 6 | myAdder(3, 5) → 8 | 10 | Numeric addition, not string concat |
 | 7 | distance(0,0,3,4) → "5.00" | 20 | Euclidean distance formula |
