@@ -2,7 +2,7 @@
 
 > **Unit 8.6** | 100 Points | 8 Automated Tests
 
-In this assignment you will learn how to write **functions** — reusable blocks of code that take inputs (parameters) and produce outputs (return values). Your functions will display results on the page using `textContent`.
+In this assignment you will learn how to write **functions** — reusable blocks of code that take inputs (parameters) and produce outputs (return values). Your functions will display results on the page using `innerHTML`.
 
 ---
 

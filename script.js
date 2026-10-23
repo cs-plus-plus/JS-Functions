@@ -116,25 +116,25 @@ function tipCalc(bill, tipPercent) {
 function onGreetClick() {
   let name = document.getElementById("greetInput").value;
   let result = greet(name);
-  document.getElementById("outGreet").textContent = result;
+  document.getElementById("outGreet").innerHTML = result;
 }
 
 function onMyFuncClick() {
   let result = myFunc();
-  document.getElementById("outMyFunc").textContent = result;
+  document.getElementById("outMyFunc").innerHTML = result;
 }
 
 function onRandomClick() {
   let max = parseInt(document.getElementById("maxRand").value);
   let result = getRandomNum(max);
-  document.getElementById("outRandom").textContent = result;
+  document.getElementById("outRandom").innerHTML = result;
 }
 
 function onAdderClick() {
   let x = parseFloat(document.getElementById("addX").value);
   let y = parseFloat(document.getElementById("addY").value);
   let result = myAdder(x, y);
-  document.getElementById("outAdder").textContent = result;
+  document.getElementById("outAdder").innerHTML = result;
 }
 
 function onDistanceClick() {
@@ -143,12 +143,12 @@ function onDistanceClick() {
   let x2 = parseFloat(document.getElementById("x2").value);
   let y2 = parseFloat(document.getElementById("y2").value);
   let result = distance(x1, y1, x2, y2);
-  document.getElementById("outDistance").textContent = result;
+  document.getElementById("outDistance").innerHTML = result;
 }
 
 function onTipClick() {
   let bill = parseFloat(document.getElementById("tipBill").value);
   let pct = parseFloat(document.getElementById("tipPercent").value);
   let result = tipCalc(bill, pct);
-  document.getElementById("outTip").textContent = result;
+  document.getElementById("outTip").innerHTML = result;
 }
